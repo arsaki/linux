@@ -55,7 +55,7 @@
 #include <linux/pgtable.h>
 #include <linux/buildid.h>
 #include <linux/task_work.h>
-
+#include <linux/module_lock.h>
 #include "internal.h"
 
 #include <asm/irq_regs.h>
@@ -410,7 +410,7 @@ static cpumask_var_t perf_online_mask;
 static struct kmem_cache *perf_event_cache;
 
 /*
- * perf event paranoia level:
+ * perf event paranoia level
  *  -1 - not paranoid at all
  *   0 - disallow raw tracepoint access for unpriv
  *   1 - disallow cpu events for unpriv
@@ -449,6 +449,47 @@ static void update_perf_cpu_limits(void)
 }
 
 static bool perf_rotate_context(struct perf_cpu_pmu_context *cpc);
+
+int module_lock_handler(struct ctl_table *table, int write,
+				       void *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret = 0;
+	struct module *mod;
+	int lck_mod_cnt = 0;
+	int locked_modules = 0;
+	mutex_lock(&module_mutex);
+	if (!write){
+		/* Generate read list */
+		list_for_each_entry(mod, &modules, list)
+			if (mod->locked == true) locked_modules++;
+		if (*ppos == 0 || module_lock_list == NULL ){
+			if (module_lock_list != NULL)
+				kfree (module_lock_list);	
+       			module_lock_list = kmalloc(locked_modules * MODULE_NAME_LEN, GFP_KERNEL);
+		}
+		list_for_each_entry(mod, &modules, list)
+			if (mod->locked == true) 
+				memcpy(&module_lock_list[MODULE_NAME_LEN * lck_mod_cnt++],
+					mod->name, strlen(mod->name) + 1);	
+	}
+	ret = proc_dostring(table, write, buffer, lenp, ppos);
+	if (write){ 
+		if (*ppos == 0)
+			list_for_each_entry(mod, &modules, list)
+				mod->locked = false;
+		mod = find_module(table->data);
+		if (mod != NULL){
+			pr_info("Locking module %s\n", mod->name);
+			mod->locked = true; 
+			ret = 0;
+		}
+		else {
+			ret = -EINVAL;			
+		}
+	}
+	mutex_unlock(&module_mutex);
+	return ret;
+}
 
 int perf_event_max_sample_rate_handler(struct ctl_table *table, int write,
 				       void *buffer, size_t *lenp, loff_t *ppos)

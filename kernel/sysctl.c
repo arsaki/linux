@@ -63,7 +63,7 @@
 #include <linux/mount.h>
 #include <linux/userfaultfd_k.h>
 #include <linux/pid.h>
-
+#include <linux/module_lock.h>
 #include "../lib/kstrtox.h"
 
 #include <linux/uaccess.h>
@@ -87,6 +87,9 @@ EXPORT_SYMBOL(sysctl_vals);
 
 const unsigned long sysctl_long_vals[] = { 0, 1, LONG_MAX };
 EXPORT_SYMBOL_GPL(sysctl_long_vals);
+
+char * module_lock_list;
+EXPORT_SYMBOL_GPL(module_lock_list);
 
 #if defined(CONFIG_SYSCTL)
 
@@ -1746,6 +1749,13 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ONE,
 		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname 	= "module_lock",
+		.data 		= &module_lock_list,
+		.maxlen		= MODULE_NAME_LEN,
+		.mode 		= 0644,
+		.proc_handler 	= module_lock_handler,
 	},
 #endif
 #ifdef CONFIG_UEVENT_HELPER

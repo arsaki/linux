@@ -721,12 +721,12 @@ SYSCALL_DEFINE2(delete_module, const char __user *, name_user,
 		goto out;
 	}
 
-	if (!list_empty(&mod->source_list)) {
+	if (!list_empty(&mod->source_list) || mod->locked) {
 		/* Other modules depend on us: get rid of them first. */
 		ret = -EWOULDBLOCK;
 		goto out;
 	}
-
+	
 	/* Doing init or already dying? */
 	if (mod->state != MODULE_STATE_LIVE) {
 		/* FIXME: if (force), slam module count damn the torpedoes */
@@ -2598,6 +2598,8 @@ static noinline int do_init_module(struct module *mod)
 	 */
 	if (llist_add(&freeinit->node, &init_free_list))
 		schedule_work(&init_free_wq);
+
+	mod->locked = false;
 
 	mutex_unlock(&module_mutex);
 	wake_up_all(&module_wq);

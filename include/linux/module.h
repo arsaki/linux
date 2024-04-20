@@ -570,6 +570,7 @@ struct module {
 	void (*exit)(void);
 
 	atomic_t refcnt;
+	bool locked;
 #endif
 
 #ifdef CONFIG_CONSTRUCTORS
