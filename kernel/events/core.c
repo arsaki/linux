@@ -505,7 +505,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 	mutex_unlock(&module_mutex);
 	return ret;
 }
-1
+
 int module_unlock_handler(struct ctl_table *table, int write,
 				       void *buffer, size_t *lenp, loff_t *ppos)
 {
