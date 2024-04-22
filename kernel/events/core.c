@@ -476,7 +476,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 					locked_modules * MODULE_NAME_LEN, 
 					GFP_KERNEL);
 				if (module_lock_list == NULL){
-					WARN_ON(module_lock_list == NULL)
+					WARN_ON(module_lock_list == NULL);
 					mutex_unlock(&module_mutex);
 					return 0;
 				}
