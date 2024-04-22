@@ -459,24 +459,39 @@ int module_lock_handler(struct ctl_table *table, int write,
 	int locked_modules = 0;
 	mutex_lock(&module_mutex);
 	if (!write){
-		/* Generate read list */
+		pr_info("Reading from /proc/sys/kernel/module_lock...\n");
+		/* Count locked modules */
 		list_for_each_entry(mod, &modules, list)
-			if (mod->locked == true) locked_modules++;
-		if (*ppos == 0 || module_lock_list == NULL ){
-			if (module_lock_list != NULL)
-				kfree (module_lock_list);	
-       			module_lock_list = kmalloc(locked_modules * MODULE_NAME_LEN, GFP_KERNEL);
+			if (mod->locked) locked_modules++;
+		pr_info("Found %i locked modules\n", locked_modules);
+		/* Alloc memory for list */	
+       		if (*ppos == 0){
+			if (module_lock_list != NULL 
+					&& strlen(module_lock_list))
+				kfree (module_lock_list);			
+			if (locked_modules == 0)
+				module_lock_list = "";
+			else {
+				module_lock_list = kmalloc(
+					locked_modules * MODULE_NAME_LEN, 
+					GFP_KERNEL);
+				if (module_lock_list == NULL){
+					WARN_ON(module_lock_list == NULL)
+					mutex_unlock(&module_mutex);
+					return 0;
+				}
+			}
 		}
+		/* Fulfill list */
 		list_for_each_entry(mod, &modules, list)
 			if (mod->locked == true) 
-				memcpy(&module_lock_list[MODULE_NAME_LEN * lck_mod_cnt++],
+				memcpy((void*)module_lock_list + 
+					(MODULE_NAME_LEN * lck_mod_cnt++),
 					mod->name, strlen(mod->name) + 1);	
 	}
 	ret = proc_dostring(table, write, buffer, lenp, ppos);
-	if (write){ 
-		if (*ppos == 0)
-			list_for_each_entry(mod, &modules, list)
-				mod->locked = false;
+	if (write){
+	       	pr_info("Acquiring to lock %s", (char *)buffer);
 		mod = find_module(table->data);
 		if (mod != NULL){
 			pr_info("Locking module %s\n", mod->name);
@@ -488,6 +503,30 @@ int module_lock_handler(struct ctl_table *table, int write,
 		}
 	}
 	mutex_unlock(&module_mutex);
+	return ret;
+}
+1
+int module_unlock_handler(struct ctl_table *table, int write,
+				       void *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret = 0;
+	struct module *mod;
+	
+	ret = proc_dostring(table, write, buffer, lenp, ppos);
+	pr_info("Getted unlock string %s\n", (char *)buffer);
+	if (write){ 
+		mutex_lock(&module_mutex);
+		mod = find_module(table->data);
+		if (mod != NULL){
+			pr_info("Found module %s, unlocking.\n", mod->name);
+			mod->locked = false; 
+			ret = 0;
+		}
+		else {
+			ret = -EINVAL;			
+		}
+		mutex_unlock(&module_mutex);
+	}
 	return ret;
 }
 

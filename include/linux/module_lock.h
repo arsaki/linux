@@ -17,5 +17,7 @@ extern char * module_lock_list;
 extern struct mutex module_mutex;
 int module_lock_handler(struct ctl_table *table, int write,
                                        void *buffer, size_t *lenp, loff_t *ppos);
+int module_unlock_handler(struct ctl_table *table, int write,
+                                       void *buffer, size_t *lenp, loff_t *ppos);
 #endif /* _LINUX_MODULE_LOCK */
  
