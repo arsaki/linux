@@ -479,13 +479,13 @@ static void * get_module_lock_list(void)
 	}
 	/* Fill list */
 	/* Initial */
-	memcpy((void*)module_lock_list + ((MODULE_NAME_LEN + 1)* lck_mod_cnt++),
+	memcpy((void*)module_lock_list + ((MODULE_NAME_LEN + 1)* lock_mod_cnt++),
 	 								"", 1);
 	/* Further */	
 	list_for_each_entry(mod, &modules, list)
 		if (mod->locked == true) 
 			memcpy((void*)module_lock_list + 
-				((MODULE_NAME_LEN + 1)* lck_mod_cnt++),
+				((MODULE_NAME_LEN + 1)* lock_mod_cnt++ ),
 				(void *)mod->name, (size_t)strlen(mod->name) + 1);
 	return module_lock_list;
 }
@@ -503,7 +503,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 		table->maxlen = MODULE_NAME_LEN + 1;
 		ret = proc_dostring(table, write, buffer, lenp, ppos);
 	       	pr_info("Acquiring to lock %s\n", (char *)buffer);
-		mod = find_module(*table->data);
+		mod = find_module((char *)table->data);
 		if (mod != NULL){
 			pr_info("Locking module %s\n", mod->name);
 			mod->locked = true; 
@@ -546,7 +546,7 @@ int module_unlock_handler(struct ctl_table *table, int write,
 	pr_info("Getted unlock string %s\n", (char *)buffer);
 	if (write){ 
 		mutex_lock(&module_mutex);
-		mod = find_module(*table->data);
+		mod = find_module((char *)table->data);
 		if (mod != NULL){
 			pr_info("Found module %s, unlocking.\n", mod->name);
 			mod->locked = false; 
