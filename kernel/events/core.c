@@ -466,8 +466,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 		pr_info("Found %i locked modules\n", locked_modules);
 		/* Alloc memory for list */	
        		if (*ppos == 0){
-			if (module_lock_list != NULL 
-					&& strlen(module_lock_list))
+			if (strcmp(module_lock_list,""))
 				kfree (module_lock_list);			
 			if (locked_modules == 0)
 				module_lock_list = "";
@@ -487,7 +486,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 			if (mod->locked == true) 
 				memcpy((void*)module_lock_list + 
 					(MODULE_NAME_LEN * lck_mod_cnt++),
-					mod->name, strlen(mod->name) + 1);	
+					(const void *)mod->name, (size_t)strlen(&mod->name) + 1);	
 	}
 	ret = proc_dostring(table, write, buffer, lenp, ppos);
 	if (write){

@@ -88,7 +88,7 @@ EXPORT_SYMBOL(sysctl_vals);
 const unsigned long sysctl_long_vals[] = { 0, 1, LONG_MAX };
 EXPORT_SYMBOL_GPL(sysctl_long_vals);
 
-char * module_lock_list = NULL;
+char * module_lock_list = "";
 EXPORT_SYMBOL_GPL(module_lock_list);
 
 char * module_unlock;
