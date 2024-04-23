@@ -486,7 +486,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 			if (mod->locked == true) 
 				memcpy((void*)module_lock_list + 
 					(MODULE_NAME_LEN * lck_mod_cnt++),
-					(const void *)mod->name, (size_t)strlen(&mod->name) + 1);	
+					(void *)mod->name, (size_t)strlen(mod->name) + 1);	
 	}
 	ret = proc_dostring(table, write, buffer, lenp, ppos);
 	if (write){
