@@ -479,14 +479,14 @@ static void * get_module_lock_list(void)
 	}
 	/* Fill list */
 	/* Initial */
-	memcpy((void*)module_lock_list + ((MODULE_NAME_LEN + 1)* lock_mod_cnt++),
-	 								"", 1);
+	memcpy((void*)module_lock_list ,"", 1);
 	/* Further */	
 	list_for_each_entry(mod, &modules, list)
 		if (mod->locked == true) 
 			memcpy((void*)module_lock_list + 
 				((MODULE_NAME_LEN + 1)* lock_mod_cnt++ ),
 				(void *)mod->name, (size_t)strlen(mod->name) + 1);
+	pr_info("Copied %i names\n", lock_mod_cnt);
 	return module_lock_list;
 }
 
@@ -517,10 +517,6 @@ int module_lock_handler(struct ctl_table *table, int write,
 	}
 	else {  /* read */
 		pr_info("Reading from /proc/sys/kernel/module_lock...\n");
-       		if (*ppos == 0){
-			pr_info("Freeing memory\n");
-			kfree (module_lock_list);
-		}
 		module_lock_list = get_module_lock_list();
 		if (module_lock_list == NULL){
 			ret = -ENOMEM;
@@ -531,6 +527,8 @@ int module_lock_handler(struct ctl_table *table, int write,
 			if (mod->locked) locked_modules++;
 		table->maxlen = locked_modules;
 		ret = proc_dostring(table, write, buffer, lenp, ppos);
+		pr_info("Freeing memory\n");
+		kfree (module_lock_list);
 	}
 exit:
 	mutex_unlock(&module_mutex);
