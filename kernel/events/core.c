@@ -450,57 +450,88 @@ static void update_perf_cpu_limits(void)
 
 static bool perf_rotate_context(struct perf_cpu_pmu_context *cpc);
 
+static void * get_module_lock_list(void)
+{
+	struct module *mod;
+	char * module_lock_list;
+	int locked_modules = 0;	
+	int lock_mod_cnt = 0;
+
+	/* Count locked modules */{
+	list_for_each_entry(mod, &modules, list)
+		if (mod->locked) locked_modules++;
+	pr_info("Found %i locked modules\n", locked_modules);
+	/* Alloc memory */
+	pr_info("kmalloc for module_lock_list\n");
+	if (locked_modules == 0){
+		pr_info("Empty module list\n");
+		module_lock_list = kmalloc(1, GFP_KERNEL);
+	}
+	else{
+		pr_info("kmalloc for %i modules\n", locked_modules);
+		module_lock_list = kmalloc(
+			locked_modules * (MODULE_NAME_LEN + 1), GFP_KERNEL);
+	}
+	if (module_lock_list == NULL){
+		pr_info("generate_module_lock_list: kmalloc error\n");
+		WARN_ON(module_lock_list == NULL);
+		return NULL;
+	}
+	/* Fulfill list */
+	/* Initial */
+	memcpy((void*)module_lock_list + ((MODULE_NAME_LEN + 1)* lck_mod_cnt++),
+	/* Further */							"", 1);
+	list_for_each_entry(mod, &modules, list)
+		if (mod->locked == true) 
+			memcpy((void*)module_lock_list + 
+				((MODULE_NAME_LEN + 1)* lck_mod_cnt++),
+				(void *)mod->name, (size_t)strlen(mod->name) + 1);
+	return module_lock_list;
+}
+
 int module_lock_handler(struct ctl_table *table, int write,
 				       void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int ret = 0;
-	struct module *mod;
-	int lck_mod_cnt = 0;
 	int locked_modules = 0;
+	struct module *mod;
+	char getted_module[MODULE_NAME_LEN + 1];
 	mutex_lock(&module_mutex);
-	if (!write){
-		pr_info("Reading from /proc/sys/kernel/module_lock...\n");
-		/* Count locked modules */
-		list_for_each_entry(mod, &modules, list)
-			if (mod->locked) locked_modules++;
-		pr_info("Found %i locked modules\n", locked_modules);
-		/* Alloc memory for list */	
-       		if (*ppos == 0){
-			if (strcmp(module_lock_list,""))
-				kfree (module_lock_list);			
-			if (locked_modules == 0)
-				module_lock_list = "";
-			else {
-				module_lock_list = kmalloc(
-					locked_modules * MODULE_NAME_LEN, 
-					GFP_KERNEL);
-				if (module_lock_list == NULL){
-					WARN_ON(module_lock_list == NULL);
-					mutex_unlock(&module_mutex);
-					return 0;
-				}
-			}
-		}
-		/* Fulfill list */
-		list_for_each_entry(mod, &modules, list)
-			if (mod->locked == true) 
-				memcpy((void*)module_lock_list + 
-					(MODULE_NAME_LEN * lck_mod_cnt++),
-					(void *)mod->name, (size_t)strlen(mod->name) + 1);	
-	}
-	ret = proc_dostring(table, write, buffer, lenp, ppos);
 	if (write){
-	       	pr_info("Acquiring to lock %s", (char *)buffer);
-		mod = find_module(table->data);
+		table->data = &getted_module;
+		table->maxlen = MODULE_NAME_LEN + 1;
+		ret = proc_dostring(table, write, buffer, lenp, ppos);
+	       	pr_info("Acquiring to lock %s\n", (char *)buffer);
+		mod = find_module(*table->data);
 		if (mod != NULL){
 			pr_info("Locking module %s\n", mod->name);
 			mod->locked = true; 
 			ret = 0;
 		}
 		else {
+			pr_err("Module \"%s\" not found\n", getted_module);
 			ret = -EINVAL;			
 		}
+		table->data = &module_lock_list;
 	}
+	else {  /* read */
+		pr_info("Reading from /proc/sys/kernel/module_lock...\n");
+       		if (*ppos == 0){
+			pr_info("Freeing memory\n");
+			kfree (module_lock_list);
+		}
+		module_lock_list = get_module_lock_list();
+		if (module_lock_list == NULL){
+			ret = -ENOMEM;
+			goto exit;
+		}
+		/* Count locked modules */{
+		list_for_each_entry(mod, &modules, list)
+			if (mod->locked) locked_modules++;
+		table->maxlen = locked_modules;
+		ret = proc_dostring(table, write, buffer, lenp, ppos);
+	}
+exit:
 	mutex_unlock(&module_mutex);
 	return ret;
 }
@@ -510,12 +541,11 @@ int module_unlock_handler(struct ctl_table *table, int write,
 {
 	int ret = 0;
 	struct module *mod;
-	
 	ret = proc_dostring(table, write, buffer, lenp, ppos);
 	pr_info("Getted unlock string %s\n", (char *)buffer);
 	if (write){ 
 		mutex_lock(&module_mutex);
-		mod = find_module(table->data);
+		mod = find_module(*table->data);
 		if (mod != NULL){
 			pr_info("Found module %s, unlocking.\n", mod->name);
 			mod->locked = false; 
