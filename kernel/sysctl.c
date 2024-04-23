@@ -88,7 +88,7 @@ EXPORT_SYMBOL(sysctl_vals);
 const unsigned long sysctl_long_vals[] = { 0, 1, LONG_MAX };
 EXPORT_SYMBOL_GPL(sysctl_long_vals);
 
-char * module_lock_list = "";
+char * module_lock_list;
 EXPORT_SYMBOL_GPL(module_lock_list);
 
 char * module_unlock;
@@ -1755,14 +1755,14 @@ static struct ctl_table kern_table[] = {
 	{
 		.procname 	= "module_lock",
 		.data 		= &module_lock_list,
-		.maxlen		= MODULE_NAME_LEN + 1,
+		.maxlen		= MODULE_NAME_LEN,
 		.mode 		= 0644,
 		.proc_handler 	= module_lock_handler,
 	},
 	{
 		.procname 	= "module_unlock",
 		.data 		= &module_unlock,
-		.maxlen		= MODULE_NAME_LEN + 1,
+		.maxlen		= MODULE_NAME_LEN,
 		.mode 		= 0200,
 		.proc_handler 	= module_unlock_handler,
 	},

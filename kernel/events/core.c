@@ -464,7 +464,7 @@ static void * get_module_lock_list(void)
 	/* Alloc memory */
 	if (locked_modules == 0){
 		pr_info("Empty module list\n");
-		module_lock_list = kzmalloc(1, GFP_KERNEL);
+		module_lock_list = kzalloc(1, GFP_KERNEL);
 	}
 	else{
 		pr_info("kmalloc for %i modules\n", locked_modules);
@@ -485,7 +485,6 @@ static void * get_module_lock_list(void)
 			memcpy((void*)module_lock_list + 
 				(MODULE_NAME_LEN + 1)*lock_mod_cnt++ ,
 				(void *)mod->name, (size_t)strlen(mod->name) + 1);
-			pr_info("%s\n", (void *)mod->name);
 		}
 	return module_lock_list;
 }
@@ -526,9 +525,9 @@ int module_lock_handler(struct ctl_table *table, int write,
 		list_for_each_entry(mod, &modules, list)
 			if (mod->locked) locked_modules++;
 		table->maxlen = locked_modules * MODULE_NAME_LEN;
-		*lenp = table->maxlen;
-		*ppos = 0;
+		table->data = module_lock_list;
 		ret = proc_dostring(table, write, buffer, lenp, ppos);
+		pr_info("buffer is %s\n", buffer);
 		pr_info("Freeing memory\n");
 		kfree (module_lock_list);
 	}
