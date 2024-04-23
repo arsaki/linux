@@ -470,7 +470,7 @@ static void * get_module_lock_list(void)
 	else{
 		pr_info("kmalloc for %i modules\n", locked_modules);
 		module_lock_list = kmalloc(
-			locked_modules * (MODULE_NAME_LEN + 1), GFP_KERNEL);
+		locked_modules * (MODULE_NAME_LEN + 1), GFP_KERNEL);
 	}
 	if (module_lock_list == NULL){
 		pr_info("generate_module_lock_list: kmalloc error\n");
@@ -482,11 +482,14 @@ static void * get_module_lock_list(void)
 	memcpy((void*)module_lock_list ,"", 1);
 	/* Further */	
 	list_for_each_entry(mod, &modules, list)
-		if (mod->locked == true) 
+		if (mod->locked == true) {
 			memcpy((void*)module_lock_list + 
-				((MODULE_NAME_LEN + 1)* lock_mod_cnt++ ),
+				(MODULE_NAME_LEN + 1)*lock_mod_cnt++ ,
 				(void *)mod->name, (size_t)strlen(mod->name) + 1);
+			pr_info("%s\n", (void *)mod->name);
+		}
 	pr_info("Copied %i names\n", lock_mod_cnt);
+	pr_info("module_lock_list begins with %s\n", module_lock_list);
 	return module_lock_list;
 }
 
