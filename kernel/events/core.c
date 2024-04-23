@@ -457,7 +457,7 @@ static void * get_module_lock_list(void)
 	int locked_modules = 0;	
 	int lock_mod_cnt = 0;
 
-	/* Count locked modules */{
+	/* Count locked modules */
 	list_for_each_entry(mod, &modules, list)
 		if (mod->locked) locked_modules++;
 	pr_info("Found %i locked modules\n", locked_modules);
@@ -477,10 +477,11 @@ static void * get_module_lock_list(void)
 		WARN_ON(module_lock_list == NULL);
 		return NULL;
 	}
-	/* Fulfill list */
+	/* Fill list */
 	/* Initial */
 	memcpy((void*)module_lock_list + ((MODULE_NAME_LEN + 1)* lck_mod_cnt++),
-	/* Further */							"", 1);
+	 								"", 1);
+	/* Further */	
 	list_for_each_entry(mod, &modules, list)
 		if (mod->locked == true) 
 			memcpy((void*)module_lock_list + 
@@ -525,7 +526,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 			ret = -ENOMEM;
 			goto exit;
 		}
-		/* Count locked modules */{
+		/* Count locked modules */
 		list_for_each_entry(mod, &modules, list)
 			if (mod->locked) locked_modules++;
 		table->maxlen = locked_modules;
