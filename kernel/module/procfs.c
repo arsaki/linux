@@ -152,8 +152,9 @@ static int locked_m_show(struct seq_file *m, void *p)
 {
 	struct module *mod ;
 	mod = list_entry(p, struct module, list);
-
-	seq_printf(m, " %s\n", mod->locked ? mod->name : "");
+	
+	if(mod->locked)
+		seq_printf(m, " %s\n",  mod->name);
 
 	return 0;
 }
