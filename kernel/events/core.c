@@ -450,50 +450,11 @@ static void update_perf_cpu_limits(void)
 
 static bool perf_rotate_context(struct perf_cpu_pmu_context *cpc);
 
-static void * get_module_lock_list(void)
-{
-	struct module *mod;
-	char * module_lock_list;
-	int locked_modules = 0;	
-	int lock_mod_cnt = 0;
-
-	/* Count locked modules */
-	list_for_each_entry(mod, &modules, list)
-		if (mod->locked) locked_modules++;
-	pr_info("Found %i locked modules\n", locked_modules);
-	/* Alloc memory */
-	if (locked_modules == 0){
-		pr_info("Empty module list\n");
-		module_lock_list = kzalloc(1, GFP_KERNEL);
-	}
-	else{
-		pr_info("kmalloc for %i modules\n", locked_modules);
-		module_lock_list = kmalloc(
-		locked_modules * (MODULE_NAME_LEN + 1), GFP_KERNEL);
-	}
-	if (module_lock_list == NULL){
-		pr_info("generate_module_lock_list: kmalloc error\n");
-		WARN_ON(module_lock_list == NULL);
-		return NULL;
-	}
-	/* Fill list */
-	/* Initial */
-	memcpy((void*)module_lock_list ,"", 1);
-	/* Further */	
-	list_for_each_entry(mod, &modules, list)
-		if (mod->locked == true) {
-			memcpy((void*)module_lock_list + 
-				(MODULE_NAME_LEN + 1)*lock_mod_cnt++ ,
-				(void *)mod->name, (size_t)strlen(mod->name) + 1);
-		}
-	return module_lock_list;
-}
 
 int module_lock_handler(struct ctl_table *table, int write,
 				       void *buffer, size_t *lenp, loff_t *ppos)
 {
 	int ret = 0;
-	int locked_modules = 0;
 	struct module *mod;
 	char getted_module[MODULE_NAME_LEN + 1];
 	mutex_lock(&module_mutex);
