@@ -148,7 +148,7 @@ static const struct proc_ops modules_proc_ops = {
 
 
 
-static int m_show(struct seq_file *m, void *p)
+static int locked_m_show(struct seq_file *m, void *p)
 {
 	struct module *mod ;
 	mod = list_entry(p, struct module, list);
@@ -171,8 +171,11 @@ static int locked_modules_open(struct inode *inode, struct file *file)
 {
 	int err = seq_open(file, &locked_modules_op);
 
-	if (!err) 
+	if (!err) {
 		struct seq_file *m = file->private_data;
+
+		m->private = kallsyms_show_value(file->f_cred) ? NULL : (void *)8ul;
+	}
 	return err;
 }
 
