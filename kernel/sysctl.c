@@ -1756,7 +1756,7 @@ static struct ctl_table kern_table[] = {
 		.procname 	= "module_lock",
 		.data 		= &module_lock_list,
 		.maxlen		= MODULE_NAME_LEN,
-		.mode 		= 0644,
+		.mode 		= 0200,
 		.proc_handler 	= module_lock_handler,
 	},
 	{

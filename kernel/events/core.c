@@ -512,26 +512,7 @@ int module_lock_handler(struct ctl_table *table, int write,
 			pr_err("Module \"%s\" not found\n", getted_module);
 			ret = -EINVAL;			
 		}
-		table->data = &module_lock_list;
 	}
-	else {  /* read */
-		pr_info("Reading from /proc/sys/kernel/module_lock...\n");
-		module_lock_list = get_module_lock_list();
-		if (module_lock_list == NULL){
-			ret = -ENOMEM;
-			goto exit;
-		}
-		/* Count locked modules */
-		list_for_each_entry(mod, &modules, list)
-			if (mod->locked) locked_modules++;
-		table->maxlen = locked_modules * MODULE_NAME_LEN;
-		table->data = module_lock_list;
-		ret = proc_dostring(table, write, buffer, lenp, ppos);
-		pr_info("buffer is %s\n", buffer);
-		pr_info("Freeing memory\n");
-		kfree (module_lock_list);
-	}
-exit:
 	mutex_unlock(&module_mutex);
 	return ret;
 }
@@ -543,8 +524,8 @@ int module_unlock_handler(struct ctl_table *table, int write,
 	struct module *mod;
 	ret = proc_dostring(table, write, buffer, lenp, ppos);
 	pr_info("Getted unlock string %s\n", (char *)buffer);
+	mutex_lock(&module_mutex);
 	if (write){ 
-		mutex_lock(&module_mutex);
 		mod = find_module((char *)table->data);
 		if (mod != NULL){
 			pr_info("Found module %s, unlocking.\n", mod->name);
@@ -554,8 +535,8 @@ int module_unlock_handler(struct ctl_table *table, int write,
 		else {
 			ret = -EINVAL;			
 		}
-		mutex_unlock(&module_mutex);
 	}
+	mutex_unlock(&module_mutex);
 	return ret;
 }
 

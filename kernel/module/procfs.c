@@ -6,6 +6,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/module_lock.h>
 #include <linux/kallsyms.h>
 #include <linux/mutex.h>
 #include <linux/seq_file.h>
@@ -136,6 +137,7 @@ static int modules_open(struct inode *inode, struct file *file)
 	return err;
 }
 
+
 static const struct proc_ops modules_proc_ops = {
 	.proc_flags	= PROC_ENTRY_PERMANENT,
 	.proc_open	= modules_open,
@@ -144,9 +146,51 @@ static const struct proc_ops modules_proc_ops = {
 	.proc_release	= seq_release,
 };
 
+
+
+static int m_show(struct seq_file *m, void *p)
+{
+	struct module *mod ;
+	mod = list_entry(p, struct module, list);
+
+	seq_printf(m, " %s\n", mod->locked ? mod->name : "");
+
+	return 0;
+}
+
+
+
+static const struct seq_operations locked_modules_op = {
+	.start	= m_start,
+	.next	= m_next,
+	.stop	= m_stop,
+	.show	= locked_m_show
+};
+
+static int locked_modules_open(struct inode *inode, struct file *file)
+{
+	int err = seq_open(file, &locked_modules_op);
+
+	if (!err) 
+		struct seq_file *m = file->private_data;
+	return err;
+}
+
+
+static const struct proc_ops locked_modules_proc_ops = {
+	.proc_flags	= PROC_ENTRY_PERMANENT,
+	.proc_open	= locked_modules_open,
+	.proc_read	= seq_read,
+	.proc_lseek	= seq_lseek,
+	.proc_release	= seq_release,
+};
+
+
+
 static int __init proc_modules_init(void)
 {
 	proc_create("modules", 0, NULL, &modules_proc_ops);
+	proc_create("locked_modules", 0, NULL, &locked_modules_proc_ops);
 	return 0;
 }
 module_init(proc_modules_init);
