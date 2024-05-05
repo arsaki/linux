@@ -137,7 +137,6 @@ static int modules_open(struct inode *inode, struct file *file)
 	return err;
 }
 
-
 static const struct proc_ops modules_proc_ops = {
 	.proc_flags	= PROC_ENTRY_PERMANENT,
 	.proc_open	= modules_open,
@@ -146,28 +145,27 @@ static const struct proc_ops modules_proc_ops = {
 	.proc_release	= seq_release,
 };
 
-
+static void *locked_m_next(struct seq_file *m, void *p, loff_t *pos)
+{
+	struct module *mod = list_entry(p, struct module, list);
+	while (!mod->locked){
+		p = (void *)((struct list_head*)p)->next;
+		mod = list_entry(p, struct module, list);
+	}	
+	return seq_list_next(p, &modules, pos);
+}
 
 static int locked_m_show(struct seq_file *m, void *p)
 {
 	struct module *mod = list_entry(p, struct module, list);
-	while(!mod->locked){
-		p = (void *)mod->list.next;
-		if (!p) 
-			goto exit;
-		mod = list_entry(p, struct module, list);
-	}
-
-	seq_printf(m, " %s\n",  mod->name);
-exit:
+/*	if (mod->locked) */
+		seq_printf(m, " %s\n",  mod->name);
 	return 0;
 }
 
-
-
 static const struct seq_operations locked_modules_op = {
 	.start	= m_start,
-	.next	= m_next,
+	.next	= locked_m_next,
 	.stop	= m_stop,
 	.show	= locked_m_show
 };
@@ -184,7 +182,6 @@ static int locked_modules_open(struct inode *inode, struct file *file)
 	return err;
 }
 
-
 static const struct proc_ops locked_modules_proc_ops = {
 	.proc_flags	= PROC_ENTRY_PERMANENT,
 	.proc_open	= locked_modules_open,
@@ -193,12 +190,11 @@ static const struct proc_ops locked_modules_proc_ops = {
 	.proc_release	= seq_release,
 };
 
-
-
 static int __init proc_modules_init(void)
 {
 	proc_create("modules", 0, NULL, &modules_proc_ops);
 	proc_create("locked_modules", 0, NULL, &locked_modules_proc_ops);
 	return 0;
 }
+
 module_init(proc_modules_init);
