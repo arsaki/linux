@@ -150,12 +150,16 @@ static const struct proc_ops modules_proc_ops = {
 
 static int locked_m_show(struct seq_file *m, void *p)
 {
-	struct module *mod ;
-	mod = list_entry(p, struct module, list);
-	
-	if(mod->locked)
-		seq_printf(m, " %s\n",  mod->name);
+	struct module *mod = list_entry(p, struct module, list);
+	while(!mod->locked){
+		p = (void *)mod->list.next;
+		if (!p) 
+			goto exit;
+		mod = list_entry(p, struct module, list);
+	}
 
+	seq_printf(m, " %s\n",  mod->name);
+exit:
 	return 0;
 }
 
