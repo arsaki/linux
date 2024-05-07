@@ -145,11 +145,27 @@ static const struct proc_ops modules_proc_ops = {
 	.proc_release	= seq_release,
 };
 
+static void *locked_m_start(struct seq_file *m, loff_t *pos)
+{
+        mutex_lock(&module_mutex);
+        struct list_head *lh = seq_list_start(&modules, *pos);
+	struct module * mod = list_entry(lh, struct module, list);
+	while (!mod->locked){
+		lh = lh->next;
+		if (lh == NULL)
+			return NULL;
+		mod = list_entry(lh, struct module, list);
+	}
+	return lh;
+
+}
+
+
 static void *locked_m_next(struct seq_file *m, void *p, loff_t *pos)
 {
 	struct module *mod = list_entry(p, struct module, list);
 	while (!mod->locked){
-		p = (void *)((struct list_head*)p)->next;
+		
 		mod = list_entry(p, struct module, list);
 	}	
 	return seq_list_next(p, &modules, pos);
