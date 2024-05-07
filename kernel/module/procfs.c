@@ -164,23 +164,25 @@ static void *locked_m_start(struct seq_file *m, loff_t *pos)
 static void *locked_m_next(struct seq_file *m, void *p, loff_t *pos)
 {
 	struct module *mod = list_entry(p, struct module, list);
+	struct list_head *lh = (struct list_head *)p;
 	while (!mod->locked){
-		
-		mod = list_entry(p, struct module, list);
-	}	
-	return seq_list_next(p, &modules, pos);
+		lh = lh->next;
+		if (lh == NULL)
+			return NULL;
+		mod = list_entry(lh, struct module, list);
+	}
+	return lh;
 }
 
 static int locked_m_show(struct seq_file *m, void *p)
 {
 	struct module *mod = list_entry(p, struct module, list);
-/*	if (mod->locked) */
-		seq_printf(m, " %s\n",  mod->name);
+	seq_printf(m, " %s\n",  mod->name);
 	return 0;
 }
 
 static const struct seq_operations locked_modules_op = {
-	.start	= m_start,
+	.start	= locked_m_start,
 	.next	= locked_m_next,
 	.stop	= m_stop,
 	.show	= locked_m_show
