@@ -145,49 +145,19 @@ static const struct proc_ops modules_proc_ops = {
 	.proc_release	= seq_release,
 };
 
-static void *locked_m_start(struct seq_file *m, loff_t *pos)
-{
-        mutex_lock(&module_mutex);
-        struct list_head *lh = seq_list_start(&modules, *pos);
-	struct module * mod = list_entry(lh, struct module, list);
-	while (!mod->locked){
-		lh = lh->next;
-		if (lh == NULL)
-			return NULL;
-		mod = list_entry(lh, struct module, list);
-	}
-	*pos += strlen(mod->name + 1);
-	pr_info("locked_m_start: pos is %d\n", (int)*pos);
-	return lh;
 
-}
-
-
-static void *locked_m_next(struct seq_file *m, void *p, loff_t *pos)
-{
-	struct module *mod = list_entry(p, struct module, list);
-	struct list_head *lh = (struct list_head *)p;
-	while (!mod->locked){
-		lh = lh->next;
-		if (lh == NULL)
-			return NULL;
-		mod = list_entry(lh, struct module, list);
-	}
-	*pos += strlen(mod->name + 1);
-	pr_info("locked_m_next: pos is %d\n", (int)*pos);
-	return lh;
-}
 
 static int locked_m_show(struct seq_file *m, void *p)
 {
 	struct module *mod = list_entry(p, struct module, list);
-	seq_printf(m, " %s\n",  mod->name);
+	if (mod->locked)
+		seq_printf(m, " %s\n",  mod->name);
 	return 0;
 }
 
 static const struct seq_operations locked_modules_op = {
-	.start	= locked_m_start,
-	.next	= locked_m_next,
+	.start	= m_start,
+	.next	= m_next,
 	.stop	= m_stop,
 	.show	= locked_m_show
 };
