@@ -156,6 +156,8 @@ static void *locked_m_start(struct seq_file *m, loff_t *pos)
 			return NULL;
 		mod = list_entry(lh, struct module, list);
 	}
+	*pos += strlen(mod->name + 1);
+	pr_info("locked_m_start: pos is %d\n", (int)*pos);
 	return lh;
 
 }
@@ -171,6 +173,8 @@ static void *locked_m_next(struct seq_file *m, void *p, loff_t *pos)
 			return NULL;
 		mod = list_entry(lh, struct module, list);
 	}
+	*pos += strlen(mod->name + 1);
+	pr_info("locked_m_next: pos is %d\n", (int)*pos);
 	return lh;
 }
 
